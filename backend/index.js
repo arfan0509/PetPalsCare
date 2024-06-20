@@ -21,7 +21,7 @@ const port = process.env.PORT || 3000; // Default to port 3000 if not specified 
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:5173", // Change this to your frontend URL
+    origin: "https://petpals-care.vercel.app", // Change this to your frontend URL
   })
 );
 
