@@ -21,7 +21,7 @@ const port = process.env.PORT || 3000; // Default to port 3000 if not specified 
 app.use(
   cors({
     credentials: true,
-    origin: "https://petpals-care.vercel.app", // Change this to your frontend URL
+    origin: "http://localhost:5173", // Change this to your frontend URL
   })
 );
 
@@ -40,6 +40,11 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/hewan", hewanRoutes);
+
+// Rute dasar untuk menangani root path
+app.get("/", (req, res) => {
+  res.send("Welcome to the PetPals Care API");
+});
 
 // Middleware for error handling
 app.use((err, req, res, next) => {
