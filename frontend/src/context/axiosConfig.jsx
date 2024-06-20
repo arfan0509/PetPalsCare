@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://petpals-be.vercel.app/api",
+  baseURL: "https://petpals-be.vercel.app/api", // Ganti dengan URL backend yang benar
   withCredentials: true,
 });
 
@@ -25,7 +25,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const response = await axios.post(
-          "/users/refresh-token",
+          "https://petpals-be.vercel.app/api/users/refresh-token",
           {},
           {
             withCredentials: true,
