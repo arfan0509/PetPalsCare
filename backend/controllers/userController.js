@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../database/Database.js";
 import fs from "fs";
+import cloudinary from "../config/cloudinaryConfig.js";
 
 export const getUsers = async (req, res) => {
   const userId = req.user.id; // Mengambil ID pengguna dari token akses
@@ -174,38 +175,28 @@ export const logoutUser = async (req, res) => {
 //upload gambar
 export const updateUserPhoto = async (req, res) => {
   const userId = req.user.id; // Mengambil ID pengguna dari token akses
-  const newFoto = req.file ? req.file.filename : null; // Mendapatkan nama file baru jika ada
+  const file = req.file; // Mendapatkan file foto dari request
 
-  if (!newFoto) {
+  if (!file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
   try {
-    // Periksa apakah pengguna sebelumnya memiliki foto profil yang disimpan di server
-    const [userData] = await pool.query(
-      "SELECT foto FROM users WHERE id_user = ?",
-      [userId]
-    );
-    const oldFoto = userData[0].foto;
+    // Upload file ke Cloudinary
+    const result = await cloudinary.v2.uploader.upload(file.buffer, {
+      folder: "uploads/profile", // Folder untuk menyimpan foto di Cloudinary
+      use_filename: true, // Menggunakan nama file asli
+    });
 
-    // Jika pengguna sebelumnya memiliki foto profil, hapus file lama dari sistem file
-    if (oldFoto) {
-      const oldFotoPath = `../uploads/profile/${oldFoto}`;
-      if (fs.existsSync(oldFotoPath)) {
-        fs.unlinkSync(oldFotoPath);
-      }
-    }
+    // Dapatkan URL gambar dari hasil upload
+    const photoUrl = result.secure_url;
 
-    // Update database dengan nama file baru dan URL gambar
-    const photoDir = "/uploads/profile/";
-    const photoUrl = `${req.protocol}://${req.get(
-      "host"
-    )}${photoDir}${newFoto}`;
+    // Update basis data dengan URL gambar baru
+    const query = "UPDATE users SET foto = ?, url_foto = ? WHERE id_user = ?";
+    const values = [file.filename, photoUrl, userId];
 
-    await pool.query(
-      "UPDATE users SET foto = ?, url_foto = ? WHERE id_user = ?",
-      [newFoto, photoUrl, userId]
-    );
+    // Jalankan query ke basis data
+    await pool.query(query, values);
 
     // Kirim URL gambar dalam tanggapan
     res
@@ -213,7 +204,7 @@ export const updateUserPhoto = async (req, res) => {
       .json({ message: "User photo updated successfully", photoUrl });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to update user photo" });
   }
 };
 
