@@ -22,7 +22,9 @@ const port = process.env.PORT || 3000; // Default to port 3000 if not specified 
 app.use(
   cors({
     origin: "https://petpals-care.vercel.app",
-    credentials: true, // Mengizinkan pengiriman kredensial (misalnya cookies) melalui CORS
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, // Izinkan pengiriman cookie dari klien
   })
 );
 
