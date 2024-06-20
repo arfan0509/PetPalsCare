@@ -122,7 +122,9 @@ const HomepageBefore = () => {
 
     const fetchDoctors = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/doctors/");
+        const response = await axios.get(
+          "https://petpals-be.vercel.app/api/doctors/"
+        );
         const shuffledDoctors = response.data.sort(() => Math.random() - 0.5);
         setDoctors(shuffledDoctors.slice(0, 4)); // Display only 4 doctors
       } catch (error) {
@@ -132,7 +134,9 @@ const HomepageBefore = () => {
 
     const fetchPets = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/hewan/");
+        const response = await axios.get(
+          "https://petpals-be.vercel.app/api/hewan/"
+        );
         const shuffledPets = response.data.sort(() => Math.random() - 0.5);
         setPets(shuffledPets.slice(0, 4)); // Display only 4 pets
       } catch (error) {

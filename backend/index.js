@@ -18,14 +18,15 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000; // Default to port 3000 if not specified in environment variables
 
+// Konfigurasi CORS
 app.use(
   cors({
-    credentials: true,
-    origin: "http://localhost:5173", // Change this to your frontend URL
+    origin: "https://petpals-care.vercel.app",
+    credentials: true, // Mengizinkan pengiriman kredensial (misalnya cookies) melalui CORS
   })
 );
 
-// Middleware for logging HTTP requests
+// Middleware untuk logging HTTP requests
 app.use(morgan("dev"));
 
 // Menyajikan folder uploads/profile secara publik
@@ -46,7 +47,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the PetPals Care API");
 });
 
-// Middleware for error handling
+// Middleware untuk penanganan error
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send("Something broke!");
