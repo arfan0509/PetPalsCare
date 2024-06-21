@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import axios from "../context/axiosConfig";
+import axios from "axios";
 
 const MAX_FILE_SIZE_MB = 3; // Ukuran maksimal file dalam MB
-
 const allowedFileTypes = ["image/jpeg", "image/jpg", "image/png"]; // Format file yang diizinkan
 
 const UploadPhotoModal = ({ onClose, onUpdate }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
 
+    // Periksa apakah file yang diupload memiliki format yang diizinkan
     if (selectedFile && allowedFileTypes.includes(selectedFile.type)) {
       setFile(selectedFile);
 
@@ -20,83 +21,62 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(selectedFile);
+
+      setErrorMessage("");
     } else {
-      alert("Harap pilih file gambar yang valid (jpg, jpeg, atau png)");
-    }
-  };
-
-  const handleDeletePhoto = async () => {
-    const accessToken = localStorage.getItem("accessToken");
-
-    try {
-      const response = await axios.delete("/users/delete-photo", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (response && response.data && response.data.message) {
-        onUpdate(null); // Perbarui komponen induk dengan URL foto null
-        onClose(); // Tutup modal
-      } else {
-        console.error("Format respons tidak valid:", response);
-        alert("Gagal menghapus foto pengguna. Format respons tidak valid.");
-      }
-    } catch (error) {
-      console.error("Gagal menghapus foto pengguna", error);
-      if (error.response) {
-        console.error("Error server:", error.response.data);
-        alert("Gagal menghapus foto pengguna. Kesalahan server.");
-      } else {
-        console.error("Kesalahan umum:", error.message);
-        alert("Gagal menghapus foto pengguna. Kesalahan umum.");
-      }
+      setFile(null);
+      setPreview(null);
+      setErrorMessage(
+        "Harap pilih file gambar dengan format JPG, JPEG, atau PNG."
+      );
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const accessToken = localStorage.getItem("accessToken");
 
     if (!file) {
-      alert("Harap pilih file terlebih dahulu");
+      alert("Harap pilih file gambar terlebih dahulu.");
       return;
     }
 
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`Ukuran file melebihi batas ${MAX_FILE_SIZE_MB} MB`);
+      alert(`Ukuran file melebihi batas ${MAX_FILE_SIZE_MB} MB.`);
       return;
     }
 
     const formData = new FormData();
-    formData.append("foto", file);
+    formData.append("file", file);
 
     try {
-      const response = await axios.put("/users/update-photo", formData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const accessToken = localStorage.getItem("accessToken");
 
-      if (response && response.data && response.data.photoUrl) {
-        onUpdate(response.data.photoUrl); // Perbarui komponen induk dengan URL foto baru
-        onClose(); // Tutup modal
+      const response = await axios.put(
+        "https://petpals-be.vercel.app/api/users/update-photo",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        onUpdate(response.data.photoUrl); // Update URL foto baru di komponen utama
+        onClose(); // Tutup modal setelah berhasil
       } else {
-        console.error("Format respons tidak valid:", response);
-        alert("Gagal memperbarui foto pengguna. Format respons tidak valid.");
+        console.error("Invalid response format:", response);
+        alert("Gagal mengunggah foto. Format respons tidak valid.");
       }
     } catch (error) {
-      console.error("Gagal memperbarui foto pengguna", error);
+      console.error("Gagal mengunggah foto:", error);
       if (error.response) {
-        console.error("Error server:", error.response.data);
-        alert("Gagal memperbarui foto pengguna. Kesalahan server.");
-      } else if (error.request) {
-        console.error("Error permintaan:", error.request);
-        alert("Gagal memperbarui foto pengguna. Kesalahan permintaan.");
+        console.error("Server error:", error.response.data);
+        alert("Gagal mengunggah foto. Kesalahan server.");
       } else {
         console.error("Kesalahan umum:", error.message);
-        alert("Gagal memperbarui foto pengguna. Kesalahan umum.");
+        alert("Gagal mengunggah foto. Kesalahan umum.");
       }
     }
   };
@@ -107,43 +87,37 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
         <h2 className="text-xl font-bold mb-4">Upload Foto Profil</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="foto" className="block text-gray-700">
+            <label htmlFor="file" className="block text-gray-700">
               Foto Profil
             </label>
             <input
               type="file"
-              id="foto"
-              name="foto"
+              id="file"
+              name="file"
               accept=".jpg, .jpeg, .png"
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded"
             />
+            {errorMessage && (
+              <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+            )}
           </div>
           {preview && (
             <div className="flex justify-center mb-4">
               <img
                 src={preview}
-                alt="Pratinjau"
+                alt="Preview"
                 className="w-32 h-32 rounded-full object-cover"
               />
             </div>
           )}
-          <div className="flex justify-end mb-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="mr-4 py-2 px-4 text-gray-500 rounded absolute top-0 right-0 mt-4 mr-4"
-            >
-              <i className="fas fa-times"></i> {/* Ikoni silang */}
-            </button>
-          </div>
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={handleDeletePhoto}
-              className="mr-4 py-2 px-4 border border-[#ED9455] bg-white text-[#ED9455] hover:bg-[#ED9455] hover:text-white transition duration-300 rounded"
+              onClick={onClose}
+              className="mr-4 py-2 px-4 text-gray-500 rounded"
             >
-              <i className="fas fa-trash-can"></i> {/* Ikoni silang */}
+              Batal
             </button>
             <button
               type="submit"
