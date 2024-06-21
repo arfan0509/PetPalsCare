@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/userRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import hewanRoutes from "./routes/hewanRoutes.js";
-import { fileDir } from "./utils/filehandler.cjs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import morgan from "morgan";
@@ -17,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3000; // Default to port 3000 if not specified in environment variables
+const port = process.env.PORT || 3000;
 
 // Konfigurasi CORS
 app.use(
@@ -25,7 +24,7 @@ app.use(
     origin: "https://petpals-care.vercel.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, // Izinkan pengiriman cookie dari klien
+    credentials: true,
   })
 );
 
@@ -38,15 +37,9 @@ app.use(
     useTempFiles: true,
     tempFileDir: "/tmp/",
     createParentPath: true,
-    debug: true, // Tambahkan ini untuk lebih banyak logging
+    debug: true,
   })
 );
-
-// Menyajikan folder uploads/profile secara publik
-app.use("/uploads/profile", express.static(fileDir("profile")));
-
-// Menyajikan folder uploads/hewan secara publik
-app.use("/uploads/hewan", express.static(fileDir("hewan")));
 
 app.use(cookieParser());
 app.use(express.json());
