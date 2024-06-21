@@ -59,7 +59,7 @@ const RegisterPage = () => {
 
       // Kirim data registrasi ke backend
       const response = await axios.post(
-        "http://localhost:5000/api/users/register",
+        "https://petpals-be.vercel.app/api/users/register",
         {
           ...formData,
           no_hp: formattedPhoneNumber, // Menggunakan nomor handphone yang sudah diformat
