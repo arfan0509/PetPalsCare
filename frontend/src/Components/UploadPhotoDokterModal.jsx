@@ -7,6 +7,7 @@ const allowedFileTypes = ["image/jpeg", "image/jpg", "image/png"]; // Format fil
 const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -20,15 +21,71 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(selectedFile);
+
+      setErrorMessage("");
     } else {
-      alert("Please select a valid image file (jpg, jpeg, or png)");
+      setFile(null);
+      setPreview(null);
+      setErrorMessage(
+        "Harap pilih file gambar dengan format JPG, JPEG, atau PNG."
+      );
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!file) {
+      alert("Harap pilih file gambar terlebih dahulu.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      alert(`Ukuran file melebihi batas ${MAX_FILE_SIZE_MB} MB.`);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+
+      const response = await axios.put(
+        "https://petpals-be.vercel.app/api/doctors/update-photo",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        onUpdate(response.data.photoUrl); // Update URL foto baru di komponen utama
+        onClose(); // Tutup modal setelah berhasil
+        window.location.reload();
+      } else {
+        console.error("Invalid response format:", response);
+        alert("Gagal mengunggah foto. Format respons tidak valid.");
+      }
+    } catch (error) {
+      console.error("Gagal mengunggah foto:", error);
+      if (error.response) {
+        console.error("Server error:", error.response.data);
+        alert("Gagal mengunggah foto. Kesalahan server.");
+      } else {
+        console.error("Kesalahan umum:", error.message);
+        alert("Gagal mengunggah foto. Kesalahan umum.");
+      }
     }
   };
 
   const handleDeletePhoto = async () => {
-    const accessToken = localStorage.getItem("accessToken");
-
     try {
+      const accessToken = localStorage.getItem("accessToken");
+
       const response = await axios.delete(
         "https://petpals-be.vercel.app/api/doctors/delete-photo",
         {
@@ -38,74 +95,22 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
         }
       );
 
-      if (response && response.data && response.data.message) {
-        onUpdate(null); // Update parent component with null photo URL
-        onClose(); // Close the modal
+      if (response.status === 200) {
+        onUpdate(null); // Hapus URL foto dari komponen utama
+        onClose(); // Tutup modal setelah berhasil menghapus
         window.location.reload();
       } else {
         console.error("Invalid response format:", response);
-        alert("Failed to delete doctor photo. Invalid response format.");
+        alert("Gagal menghapus foto. Format respons tidak valid.");
       }
     } catch (error) {
-      console.error("Failed to delete doctor photo", error);
+      console.error("Gagal menghapus foto:", error);
       if (error.response) {
         console.error("Server error:", error.response.data);
-        alert("Failed to delete doctor photo. Server error.");
+        alert("Gagal menghapus foto. Kesalahan server.");
       } else {
-        console.error("General error:", error.message);
-        alert("Failed to delete doctor photo. General error.");
-      }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const accessToken = localStorage.getItem("accessToken");
-
-    if (!file) {
-      alert("Please select a file first");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`File size exceeds the limit of ${MAX_FILE_SIZE_MB} MB`);
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("foto", file);
-
-    try {
-      const response = await axios.put(
-        "https://petpals-be.vercel.app/api/doctors/update-photo",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      if (response && response.data && response.data.photoUrl) {
-        onUpdate(response.data.photoUrl); // Update parent component with new photo URL
-        onClose(); // Close the modal
-        window.location.reload();
-      } else {
-        console.error("Invalid response format:", response);
-        alert("Failed to update doctor photo. Invalid response format.");
-      }
-    } catch (error) {
-      console.error("Failed to update doctor photo", error);
-      if (error.response) {
-        console.error("Server error:", error.response.data);
-        alert("Failed to update doctor photo. Server error.");
-      } else if (error.request) {
-        console.error("Request error:", error.request);
-        alert("Failed to update doctor photo. Request error.");
-      } else {
-        console.error("General error:", error.message);
-        alert("Failed to update doctor photo. General error.");
+        console.error("Kesalahan umum:", error.message);
+        alert("Gagal menghapus foto. Kesalahan umum.");
       }
     }
   };
@@ -116,13 +121,20 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
         <h2 className="text-xl font-bold mb-4">Upload Foto Profil Dokter</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">Foto Profil</label>
+            <label htmlFor="file" className="block text-gray-700">
+              Foto Profil
+            </label>
             <input
               type="file"
-              name="foto"
+              id="file"
+              name="file"
+              accept=".jpg, .jpeg, .png"
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded"
             />
+            {errorMessage && (
+              <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+            )}
           </div>
           {preview && (
             <div className="flex justify-center mb-4">
@@ -133,7 +145,7 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
               />
             </div>
           )}
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={onClose}
@@ -142,13 +154,13 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
               <i className="fas fa-times"></i> {/* Icon silang */}
             </button>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end mb-4">
             <button
               type="button"
               onClick={handleDeletePhoto}
-              className="mr-4 py-2 px-4 border border-[#DE9455] bg-white text-[#DE9455] hover              :bg-[#DE9455] hover:bg-[#DE9455] hover:text-white transition duration-300 rounded"
+              className="mr-4 py-2 px-4 border border-[#DE9455] bg-white text-[#DE9455] hover:bg-[#DE9455] hover:text-white transition duration-300 rounded"
             >
-              <i className="fas fa-trash-can"></i> {/* Icon silang */}
+              <i className="fas fa-trash-alt"></i> {/* Icon tempat sampah */}
             </button>
             <button
               type="submit"
