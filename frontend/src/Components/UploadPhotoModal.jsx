@@ -51,12 +51,16 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
     try {
       const accessToken = localStorage.getItem("accessToken");
 
-      const response = await axios.put("/users/update-photo", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await axios.put(
+        "https://petpals-be.vercel.app/api/users/update-photo",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       if (response.status === 200) {
         onUpdate(response.data.photoUrl); // Update URL foto baru di komponen utama
@@ -81,11 +85,14 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
     try {
       const accessToken = localStorage.getItem("accessToken");
 
-      const response = await axios.delete("/users/delete-photo", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await axios.delete(
+        "https://petpals-be.vercel.app/api/users/delete-photo",
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       if (response.status === 200) {
         onUpdate(null); // Hapus URL foto dari komponen utama
