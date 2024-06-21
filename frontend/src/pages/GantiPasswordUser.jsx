@@ -102,9 +102,6 @@ const GantiPasswordUser = () => {
               <a href="/GantiPassword-user">Ubah Kata Sandi</a>
             </li>
             <li className="p-2 hover:bg-[#DE9455] hover:text-white border-collapse rounded-lg transition duration-200">
-              <a href="#">Pesan</a>
-            </li>
-            <li className="p-2 hover:bg-[#DE9455] hover:text-white border-collapse rounded-lg transition duration-200">
               <a href="/PostingHewan">Posting Hewan Saya</a>
             </li>
             <div className="py-4"></div>

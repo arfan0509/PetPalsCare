@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-import axios from "../context/axiosConfig";
+import axios from "axios";
 
 const MAX_FILE_SIZE_MB = 3; // Ukuran maksimal file dalam MB
-
 const allowedFileTypes = ["image/jpeg", "image/jpg", "image/png"]; // Format file yang diizinkan
 
 const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
-  // State untuk menyimpan file dan pratinjau
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
-  // Fungsi untuk menangani perubahan file
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
 
@@ -28,16 +25,18 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
     }
   };
 
-  // Fungsi untuk menghapus foto profil
   const handleDeletePhoto = async () => {
     const accessToken = localStorage.getItem("accessToken");
 
     try {
-      const response = await axios.delete("/doctors/delete-photo", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await axios.delete(
+        "https://petpals-be.vercel.app/api/doctors/delete-photo",
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       if (response && response.data && response.data.message) {
         onUpdate(null); // Update parent component with null photo URL
@@ -59,7 +58,6 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
     }
   };
 
-  // Fungsi untuk menangani pengiriman file
   const handleSubmit = async (e) => {
     e.preventDefault();
     const accessToken = localStorage.getItem("accessToken");
@@ -78,12 +76,16 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
     formData.append("foto", file);
 
     try {
-      const response = await axios.put("/doctors/update-photo", formData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.put(
+        "https://petpals-be.vercel.app/api/doctors/update-photo",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       if (response && response.data && response.data.photoUrl) {
         onUpdate(response.data.photoUrl); // Update parent component with new photo URL
@@ -144,7 +146,7 @@ const UploadPhotoDokterModal = ({ onClose, onUpdate }) => {
             <button
               type="button"
               onClick={handleDeletePhoto}
-              className="mr-4 py-2 px-4 border border-[#ED9455] bg-white text-[#ED9455] hover              :bg-[#ED9455] hover:bg-[#ED9455] hover:text-white transition duration-300 rounded"
+              className="mr-4 py-2 px-4 border border-[#DE9455] bg-white text-[#DE9455] hover              :bg-[#DE9455] hover:bg-[#DE9455] hover:text-white transition duration-300 rounded"
             >
               <i className="fas fa-trash-can"></i> {/* Icon silang */}
             </button>
