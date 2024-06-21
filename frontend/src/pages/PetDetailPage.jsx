@@ -215,6 +215,10 @@ Dimana saya mendapatkan informasi ini di situs *PetPals Care*`;
               </span>
               <span className="font-sans">{Hewan.user_no_hp}</span>
             </div>
+            <div className="border-b border-gray-200 py-2 flex">
+              <span className="text-gray-500 font-sans w-48">Deskripsi: </span>
+              <span className="font-sans">{Hewan.deskripsi}</span>
+            </div>
           </div>
           <button
             className="mt-6 px-6 py-3 bg-[#ED9455] hover:bg-[#f89b59] text-white rounded-lg transition duration-300"
