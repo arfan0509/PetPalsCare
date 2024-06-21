@@ -6,15 +6,12 @@ const MAX_FILE_SIZE_MB = 3; // Ukuran maksimal file dalam MB
 const allowedFileTypes = ["image/jpeg", "image/jpg", "image/png"]; // Format file yang diizinkan
 
 const UploadPhotoModal = ({ onClose, onUpdate }) => {
-  // State untuk menyimpan file dan pratinjau
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
-  // Fungsi untuk menangani perubahan file
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
 
-    // Periksa apakah file yang diupload memiliki format yang diizinkan
     if (selectedFile && allowedFileTypes.includes(selectedFile.type)) {
       setFile(selectedFile);
 
@@ -24,11 +21,10 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       };
       reader.readAsDataURL(selectedFile);
     } else {
-      alert("Please select a valid image file (jpg, jpeg, or png)");
+      alert("Harap pilih file gambar yang valid (jpg, jpeg, atau png)");
     }
   };
 
-  // Fungsi untuk menghapus foto profil
   const handleDeletePhoto = async () => {
     const accessToken = localStorage.getItem("accessToken");
 
@@ -40,37 +36,35 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       });
 
       if (response && response.data && response.data.message) {
-        onUpdate(null); // Update parent component with null photo URL
-        onClose(); // Close the modal
-        window.location.reload(); // Reloading window might not be necessary; consider alternative approach
+        onUpdate(null); // Perbarui komponen induk dengan URL foto null
+        onClose(); // Tutup modal
       } else {
-        console.error("Invalid response format:", response);
-        alert("Failed to delete user photo. Invalid response format.");
+        console.error("Format respons tidak valid:", response);
+        alert("Gagal menghapus foto pengguna. Format respons tidak valid.");
       }
     } catch (error) {
-      console.error("Failed to delete user photo", error);
+      console.error("Gagal menghapus foto pengguna", error);
       if (error.response) {
-        console.error("Server error:", error.response.data);
-        alert("Failed to delete user photo. Server error.");
+        console.error("Error server:", error.response.data);
+        alert("Gagal menghapus foto pengguna. Kesalahan server.");
       } else {
-        console.error("General error:", error.message);
-        alert("Failed to delete user photo. General error.");
+        console.error("Kesalahan umum:", error.message);
+        alert("Gagal menghapus foto pengguna. Kesalahan umum.");
       }
     }
   };
 
-  // Fungsi untuk menangani pengiriman file
   const handleSubmit = async (e) => {
     e.preventDefault();
     const accessToken = localStorage.getItem("accessToken");
 
     if (!file) {
-      alert("Please select a file first");
+      alert("Harap pilih file terlebih dahulu");
       return;
     }
 
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`File size exceeds the limit of ${MAX_FILE_SIZE_MB} MB`);
+      alert(`Ukuran file melebihi batas ${MAX_FILE_SIZE_MB} MB`);
       return;
     }
 
@@ -86,23 +80,23 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       });
 
       if (response && response.data && response.data.photoUrl) {
-        onUpdate(response.data.photoUrl); // Update parent component with new photo URL
-        onClose(); // Close the modal
+        onUpdate(response.data.photoUrl); // Perbarui komponen induk dengan URL foto baru
+        onClose(); // Tutup modal
       } else {
-        console.error("Invalid response format:", response);
-        alert("Failed to update user photo. Invalid response format.");
+        console.error("Format respons tidak valid:", response);
+        alert("Gagal memperbarui foto pengguna. Format respons tidak valid.");
       }
     } catch (error) {
-      console.error("Failed to update user photo", error);
+      console.error("Gagal memperbarui foto pengguna", error);
       if (error.response) {
-        console.error("Server error:", error.response.data);
-        alert("Failed to update user photo. Server error.");
+        console.error("Error server:", error.response.data);
+        alert("Gagal memperbarui foto pengguna. Kesalahan server.");
       } else if (error.request) {
-        console.error("Request error:", error.request);
-        alert("Failed to update user photo. Request error.");
+        console.error("Error permintaan:", error.request);
+        alert("Gagal memperbarui foto pengguna. Kesalahan permintaan.");
       } else {
-        console.error("General error:", error.message);
-        alert("Failed to update user photo. General error.");
+        console.error("Kesalahan umum:", error.message);
+        alert("Gagal memperbarui foto pengguna. Kesalahan umum.");
       }
     }
   };
@@ -129,7 +123,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
             <div className="flex justify-center mb-4">
               <img
                 src={preview}
-                alt="Preview"
+                alt="Pratinjau"
                 className="w-32 h-32 rounded-full object-cover"
               />
             </div>
@@ -140,7 +134,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
               onClick={onClose}
               className="mr-4 py-2 px-4 text-gray-500 rounded absolute top-0 right-0 mt-4 mr-4"
             >
-              <i className="fas fa-times"></i> {/* Icon silang */}
+              <i className="fas fa-times"></i> {/* Ikoni silang */}
             </button>
           </div>
           <div className="flex justify-end">
@@ -149,7 +143,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
               onClick={handleDeletePhoto}
               className="mr-4 py-2 px-4 border border-[#ED9455] bg-white text-[#ED9455] hover:bg-[#ED9455] hover:text-white transition duration-300 rounded"
             >
-              <i className="fas fa-trash-can"></i> {/* Icon silang */}
+              <i className="fas fa-trash-can"></i> {/* Ikoni silang */}
             </button>
             <button
               type="submit"
