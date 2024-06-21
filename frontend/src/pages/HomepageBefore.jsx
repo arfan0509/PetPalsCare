@@ -69,7 +69,7 @@ const DoctorCard = ({ image, doctorName, specialty, experience }) => (
     )}
     <div className="p-4 flex flex-col items-start w-full">
       <h2 className="text-xl font-semibold text-slate-900 line-clamp-1">
-        {doctorName}
+        Drh. {doctorName}
       </h2>
       <p className="text-gray-500 text-sm mt-2 line-clamp-1">
         <span className="font-medium">Spesialis:</span> {specialty}
