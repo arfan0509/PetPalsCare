@@ -65,6 +65,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       if (response.status === 200) {
         onUpdate(response.data.photoUrl); // Update URL foto baru di komponen utama
         onClose(); // Tutup modal setelah berhasil
+        window.location.reload();
       } else {
         console.error("Invalid response format:", response);
         alert("Gagal mengunggah foto. Format respons tidak valid.");
@@ -97,6 +98,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       if (response.status === 200) {
         onUpdate(null); // Hapus URL foto dari komponen utama
         onClose(); // Tutup modal setelah berhasil menghapus
+        window.location.reload();
       } else {
         console.error("Invalid response format:", response);
         alert("Gagal menghapus foto. Format respons tidak valid.");
