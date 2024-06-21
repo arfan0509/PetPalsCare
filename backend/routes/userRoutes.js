@@ -12,7 +12,6 @@ import {
 } from "../controllers/userController.js";
 import { refreshToken } from "../controllers/RefreshToken.js";
 import verifyToken from "../middleware/VerifyToken.js";
-import uploadPP from "../middleware/multer.js";
 import { getDoctorById } from "../controllers/doctorController.js";
 import { getHewanById } from "../controllers/hewanController.js";
 
@@ -26,12 +25,7 @@ router.delete("/logout", logoutUser);
 // Rute yang memerlukan otentikasi
 router.get("/users-data", verifyToken, getUsers);
 router.put("/update-data", verifyToken, updateUser);
-router.put(
-  "/update-photo",
-  verifyToken,
-  uploadPP.single("foto"),
-  updateUserPhoto
-);
+router.put("/update-photo", verifyToken, updateUserPhoto);
 router.put("/change-password", verifyToken, changePassword);
 router.delete("/delete-photo", verifyToken, deletePhoto);
 router.delete("/delete-account", verifyToken, deleteAccount);

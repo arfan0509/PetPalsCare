@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../database/Database.js";
-import fs from "fs";
+import cloudinary from "../config/cloudinaryConfig.js";
 
 // Mendapatkan profil dokter
 export const getDoctorProfile = async (req, res) => {
@@ -124,7 +124,6 @@ export const updateDoctor = async (req, res) => {
     alamat,
     spesialis,
     lulusan,
-
     pengalaman,
     oldPassword,
     newPassword,
@@ -142,7 +141,6 @@ export const updateDoctor = async (req, res) => {
       alamat,
       spesialis,
       lulusan,
-
       pengalaman,
       doctorId,
     ];
@@ -217,47 +215,108 @@ export const logoutDoctor = async (req, res) => {
 };
 
 // Mengupdate foto profil dokter
+// Fungsi untuk mengunggah gambar ke Cloudinary
+const uploadToCloudinary = async (filePath) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.v2.uploader.upload(
+      filePath,
+      {
+        folder: "profile", // Ganti dengan folder yang sesuai di Cloudinary Anda
+        overwrite: true,
+        resource_type: "image", // Tipe resource yang diunggah (gambar)
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+  });
+};
+
+// Controller untuk mengupdate foto profil dokter
 export const updateDoctorPhoto = async (req, res) => {
-  const doctorId = req.user.id; // Mengambil ID dokter dari token akses
-  const newFoto = req.file ? req.file.filename : null; // Mendapatkan nama file baru jika ada
+  const doctorId = req.user.id; // Mendapatkan ID dokter dari token akses
+  const newFoto = req.files.file; // Mendapatkan file gambar dari permintaan
 
   if (!newFoto) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
   try {
-    // Periksa apakah dokter sebelumnya memiliki foto profil yang disimpan di server
+    // Unggah file ke Cloudinary
+    const cloudinaryResponse = await uploadToCloudinary(newFoto.tempFilePath);
+
+    // Perbarui database dengan nama file baru dan URL gambar dari Cloudinary
+    const { secure_url, public_id } = cloudinaryResponse;
+
+    // Ambil foto lama dokter dari database untuk penghapusan
     const [doctorData] = await pool.query(
       "SELECT foto FROM dokter WHERE id_dokter = ?",
       [doctorId]
     );
-    const oldFoto = doctorData[0].foto;
 
-    // Jika dokter sebelumnya memiliki foto profil, hapus file lama dari sistem file
-    if (oldFoto) {
-      const oldFotoPath = `../uploads/profile/${oldFoto}`;
-      if (fs.existsSync(oldFotoPath)) {
-        fs.unlinkSync(oldFotoPath);
+    if (doctorData.length > 0) {
+      const oldFoto = doctorData[0].foto;
+
+      // Jika dokter memiliki foto profil sebelumnya, hapus dari Cloudinary
+      if (oldFoto) {
+        await cloudinary.v2.uploader.destroy(oldFoto);
       }
+
+      // Update database dengan foto baru dan URL gambar
+      await pool.query(
+        "UPDATE dokter SET foto = ?, url_foto = ? WHERE id_dokter = ?",
+        [public_id, secure_url, doctorId]
+      );
+
+      // Kirim URL gambar dalam tanggapan
+      res.status(200).json({
+        message: "Doctor photo updated successfully",
+        photoUrl: secure_url,
+      });
+    } else {
+      res.status(404).json({ message: "Doctor not found" });
     }
+  } catch (error) {
+    console.error("Error updating doctor photo:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    // Update database dengan nama file baru dan URL gambar
-    const photoDir = "/uploads/profile/";
-    const photoUrl = `${req.protocol}://${req.get(
-      "host"
-    )}${photoDir}${newFoto}`;
+// Fungsi untuk menghapus foto profil dokter
+export const deleteDoctorPhoto = async (req, res) => {
+  const doctorId = req.user.id; // Mendapatkan ID dokter dari token akses
 
-    await pool.query(
-      "UPDATE dokter SET foto = ?, url_foto = ? WHERE id_dokter = ?",
-      [newFoto, photoUrl, doctorId]
+  try {
+    // Ambil data foto dokter dari database
+    const [doctorData] = await pool.query(
+      "SELECT foto FROM dokter WHERE id_dokter = ?",
+      [doctorId]
     );
 
-    // Kirim URL gambar dalam tanggapan
-    res
-      .status(200)
-      .json({ message: "Doctor photo updated successfully", photoUrl });
+    if (doctorData.length > 0) {
+      const oldFoto = doctorData[0].foto;
+
+      // Jika dokter memiliki foto profil sebelumnya, hapus dari Cloudinary
+      if (oldFoto) {
+        await cloudinary.v2.uploader.destroy(oldFoto);
+      }
+
+      // Update database untuk menghapus referensi foto
+      await pool.query(
+        "UPDATE dokter SET foto = NULL, url_foto = NULL WHERE id_dokter = ?",
+        [doctorId]
+      );
+
+      res.status(200).json({ message: "Doctor photo deleted successfully" });
+    } else {
+      res.status(404).json({ message: "Doctor not found" });
+    }
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting doctor photo:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -286,36 +345,6 @@ export const changeDoctorPassword = async (req, res) => {
     ]);
 
     res.status(200).json({ message: "Password updated successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Fungsi untuk menghapus foto profil dokter
-export const deleteDoctorPhoto = async (req, res) => {
-  const doctorId = req.user.id;
-
-  try {
-    const [doctorData] = await pool.query(
-      "SELECT foto FROM dokter WHERE id_dokter = ?",
-      [doctorId]
-    );
-    const oldFoto = doctorData[0].foto;
-
-    if (oldFoto) {
-      const oldFotoPath = `../uploads/profile/${oldFoto}`;
-      if (fs.existsSync(oldFotoPath)) {
-        fs.unlinkSync(oldFotoPath);
-      }
-    }
-
-    await pool.query(
-      "UPDATE dokter SET foto = NULL, url_foto = NULL WHERE id_dokter = ?",
-      [doctorId]
-    );
-
-    res.status(200).json({ message: "Doctor photo deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

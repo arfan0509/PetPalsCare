@@ -1,11 +1,9 @@
-// backend/config/cloudinaryConfig.js
-
 import cloudinary from "cloudinary";
 
 cloudinary.v2.config({
-  cloud_name: "petpals-uploads",
-  api_key: "138677287291171",
-  api_secret: "ZynABdt-k08Kg-OXVTnpdcBlr2A",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 export default cloudinary;

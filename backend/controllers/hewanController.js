@@ -1,5 +1,6 @@
 import pool from "../database/Database.js";
 import fs from "fs";
+import cloudinary from "../config/cloudinaryConfig.js";
 
 // Fungsi untuk mendapatkan hewan dengan informasi pengguna dan foto_hewan
 export const getHewanWithUser = async (req, res) => {
@@ -183,6 +184,21 @@ export const getHewanByUserLogin = async (req, res) => {
 };
 
 // Fungsi untuk mengupload hewan dan foto
+// Fungsi untuk mengunggah gambar ke Cloudinary
+const uploadToCloudinary = async (filePath) => {
+  try {
+    const result = await cloudinary.v2.uploader.upload(filePath, {
+      folder: "hewan", // Folder di Cloudinary untuk menyimpan gambar hewan
+      overwrite: true, // Overwrite jika ada file dengan nama yang sama
+      resource_type: "image", // Jenis resource yang diunggah (gambar)
+    });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Controller untuk mengupload hewan dan foto
 export const uploadHewan = async (req, res) => {
   const {
     nama,
@@ -195,9 +211,9 @@ export const uploadHewan = async (req, res) => {
     deskripsi,
   } = req.body;
   const userId = req.user.id;
-  const file = req.file;
+  const mainPhoto = req.files.main_photo; // Menggunakan key main_photo untuk file gambar
 
-  if (!file) {
+  if (!mainPhoto) {
     return res.status(400).json({ message: "No main photo uploaded" });
   }
 
@@ -205,10 +221,14 @@ export const uploadHewan = async (req, res) => {
     // Mulai transaksi
     await pool.query("START TRANSACTION");
 
-    // URL untuk foto utama
-    const fotoUtamaUrl = `${req.protocol}://${req.get("host")}/uploads/hewan/${
-      file.filename
-    }`;
+    // Path lokal file sementara
+    const tempFilePath = mainPhoto.tempFilePath;
+
+    // Unggah file ke Cloudinary
+    const cloudinaryResponse = await uploadToCloudinary(tempFilePath);
+
+    // URL gambar dari Cloudinary
+    const { secure_url, public_id } = cloudinaryResponse;
 
     // Insert data hewan ke dalam tabel hewan
     const [result] = await pool.query(
@@ -222,8 +242,8 @@ export const uploadHewan = async (req, res) => {
         lokasi,
         tgl_publish,
         deskripsi,
-        file.filename,
-        fotoUtamaUrl,
+        public_id,
+        secure_url,
         userId,
       ]
     );
@@ -239,24 +259,18 @@ export const uploadHewan = async (req, res) => {
     // Rollback transaksi jika terjadi kesalahan
     await pool.query("ROLLBACK");
 
-    // Hapus file yang diunggah jika terjadi kesalahan
-    if (file) {
-      const filePath = `../uploads/hewan/${file.filename}`;
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
-    console.error(error);
+    console.error("Error uploading hewan:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // Fungsi untuk mengupload foto hewan ke dalam tabel foto_hewan
+// Controller untuk mengupload foto hewan ke dalam tabel foto_hewan
 export const uploadFotoHewan = async (req, res) => {
   const hewanId = req.params.id;
-  const files = req.files;
+  const files = req.files.photos; // Menggunakan key "photos" untuk array file gambar
 
-  if (!files || files.length === 0) {
+  if (!files || !Array.isArray(files) || files.length === 0) {
     return res.status(400).json({ message: "No files uploaded" });
   }
 
@@ -270,46 +284,45 @@ export const uploadFotoHewan = async (req, res) => {
 
     // Jika jumlah foto melebihi 5, batalkan upload
     if (photoCount + files.length > 5) {
-      // Hapus file yang diunggah jika tidak valid
-      files.forEach((file) => {
-        const filePath = `../uploads/hewan/${file.filename}`;
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      });
       return res
         .status(400)
         .json({ message: "A hewan can only have up to 5 photos" });
     }
 
-    // Insert foto ke dalam tabel foto_hewan
+    // Upload setiap file ke Cloudinary dan insert ke dalam tabel foto_hewan
     await Promise.all(
       files.map(async (file) => {
-        const photoUrl = `${req.protocol}://${req.get("host")}/uploads/hewan/${
-          file.filename
-        }`;
+        const tempFilePath = file.tempFilePath;
+        const cloudinaryResponse = await uploadToCloudinary(tempFilePath);
+        const { secure_url, public_id } = cloudinaryResponse;
+        const photoUrl = secure_url; // URL gambar dari Cloudinary
+
         await pool.query(
           "INSERT INTO foto_hewan (hewan_id_hewan, foto, url_foto) VALUES (?, ?, ?)",
-          [hewanId, file.filename, photoUrl]
+          [hewanId, public_id, photoUrl]
         );
       })
     );
 
     res.status(201).json({ message: "Photos uploaded successfully" });
   } catch (error) {
-    // Hapus file yang diunggah jika terjadi kesalahan
-    files.forEach((file) => {
-      const filePath = `../uploads/hewan/${file.filename}`;
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    });
-
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+// Fungsi untuk menghapus foto dari Cloudinary
+const deleteFromCloudinary = async (publicId) => {
+  try {
+    await cloudinary.v2.uploader.destroy(publicId);
+    console.log(`Deleted image from Cloudinary with public_id: ${publicId}`);
+  } catch (error) {
+    console.error("Error deleting image from Cloudinary:", error);
+    throw error;
+  }
+};
+
+// Fungsi Delete Data Hewan Beserta Fotonya
 // Fungsi Delete Data Hewan Beserta Fotonya
 export const deleteHewan = async (req, res) => {
   const hewanId = req.params.id;
@@ -324,25 +337,27 @@ export const deleteHewan = async (req, res) => {
 
     if (hewanData.length > 0) {
       const fotoUtama = hewanData[0].foto_utama;
-      const fotoUtamaPath = `../uploads/hewan/${fotoUtama}`;
-      if (fs.existsSync(fotoUtamaPath)) {
-        fs.unlinkSync(fotoUtamaPath);
+      if (fotoUtama) {
+        // Hapus foto utama dari Cloudinary berdasarkan foto_utama (jika diperlukan)
+        // Misalnya, jika Anda ingin menggunakan foto_utama sebagai public_id di Cloudinary
+        await deleteFromCloudinary(fotoUtama);
       }
     }
 
-    // Ambil nama file gambar dari tabel foto_hewan terkait dengan hewan yang akan dihapus
+    // Ambil foto dari tabel foto_hewan terkait dengan hewan yang akan dihapus
     const [fotoHewanRows] = await pool.query(
-      "SELECT foto FROM foto_hewan WHERE hewan_id_hewan = ?",
+      "SELECT id_foto, foto, public_id FROM foto_hewan WHERE hewan_id_hewan = ?",
       [hewanId]
     );
 
-    // Hapus file foto dari sistem
-    fotoHewanRows.forEach((row) => {
-      const fotoPath = `../uploads/hewan/${row.foto}`;
-      if (fs.existsSync(fotoPath)) {
-        fs.unlinkSync(fotoPath);
-      }
-    });
+    // Hapus foto dari Cloudinary berdasarkan public_id
+    await Promise.all(
+      fotoHewanRows.map(async (row) => {
+        if (row.public_id) {
+          await deleteFromCloudinary(row.public_id);
+        }
+      })
+    );
 
     // Hapus entri foto dari tabel foto_hewan
     await pool.query("DELETE FROM foto_hewan WHERE hewan_id_hewan = ?", [

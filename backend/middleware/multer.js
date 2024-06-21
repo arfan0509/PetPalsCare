@@ -1,16 +1,31 @@
-// backend/multer/uploadPP.js
-
 import multer from "multer";
-import cloudinary from "../config/cloudinaryConfig.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const uploadPP = multer({
-  storage: multer.memoryStorage(), // Menggunakan memory storage untuk menyimpan sementara file di RAM
-  fileFilter: function (req, file, cb) {
-    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-      return cb(new Error("Only image files are allowed!"));
-    }
-    cb(null, true);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, "../../uploads/profile"));
+  },
+  filename: function (req, file, cb) {
+    const userId = req.user.id; // Mendapatkan ID pengguna dari request (pastikan Anda memiliki middleware yang menetapkan req.user)
+    const filenameWithoutExt = path
+      .parse(file.originalname)
+      .name.replace(/\s+/g, "-"); // Mengganti semua spasi dengan tanda hubung
+    cb(
+      null,
+      userId +
+        "-" +
+        filenameWithoutExt +
+        "-" +
+        Date.now() +
+        path.extname(file.originalname)
+    );
   },
 });
 
-export default uploadPP.single("foto"); // Menggunakan single untuk mengunggah satu file saja dengan field "foto"
+const uploadPP = multer({ storage: storage });
+
+export default uploadPP;

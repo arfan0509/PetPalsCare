@@ -12,7 +12,6 @@ import {
 } from "../controllers/doctorController.js";
 import { refreshTokenDoctor } from "../controllers/RefreshToken.js";
 import verifyToken from "../middleware/VerifyToken.js";
-import uploadPP from "../middleware/multer.js";
 
 const router = express.Router();
 
@@ -27,12 +26,7 @@ router.get("/", getAllDoctors);
 // Rute yang memerlukan otentikasi
 router.get("/dokter-data", verifyToken, getDoctorProfile);
 router.put("/update-data", verifyToken, updateDoctor);
-router.put(
-  "/update-photo",
-  verifyToken,
-  uploadPP.single("foto"),
-  updateDoctorPhoto
-);
+router.put("/update-photo", verifyToken, updateDoctorPhoto);
 router.put("/change-password", verifyToken, changeDoctorPassword);
 router.delete("/delete-photo", verifyToken, deleteDoctorPhoto);
 

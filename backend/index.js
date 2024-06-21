@@ -9,6 +9,7 @@ import { fileDir } from "./utils/filehandler.cjs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import morgan from "morgan";
+import fileUpload from "express-fileupload";
 
 dotenv.config();
 
@@ -31,6 +32,16 @@ app.use(
 // Middleware untuk logging HTTP requests
 app.use(morgan("dev"));
 
+// Middleware untuk menangani file upload
+app.use(
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: "/tmp/",
+    createParentPath: true,
+    debug: true, // Tambahkan ini untuk lebih banyak logging
+  })
+);
+
 // Menyajikan folder uploads/profile secara publik
 app.use("/uploads/profile", express.static(fileDir("profile")));
 
@@ -40,6 +51,7 @@ app.use("/uploads/hewan", express.static(fileDir("hewan")));
 app.use(cookieParser());
 app.use(express.json());
 
+// Gunakan routes
 app.use("/api/users", userRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/hewan", hewanRoutes);

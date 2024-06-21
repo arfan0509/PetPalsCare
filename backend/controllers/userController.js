@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../database/Database.js";
-import fs from "fs";
 import cloudinary from "../config/cloudinaryConfig.js";
 
 export const getUsers = async (req, res) => {
@@ -173,38 +172,109 @@ export const logoutUser = async (req, res) => {
 };
 
 //upload gambar
-export const updateUserPhoto = async (req, res) => {
-  const userId = req.user.id; // Mengambil ID pengguna dari token akses
-  const file = req.file; // Mendapatkan file foto dari request
+// Fungsi untuk mengunggah gambar ke Cloudinary
+const uploadToCloudinary = async (filePath) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.v2.uploader.upload(
+      filePath,
+      {
+        folder: "profile", // Ganti dengan folder yang sesuai di Cloudinary Anda
+        overwrite: true,
+        resource_type: "image", // Tipe resource yang diunggah (gambar)
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+  });
+};
 
-  if (!file) {
+// Controller untuk mengupdate foto profil pengguna
+export const updateUserPhoto = async (req, res) => {
+  const userId = req.user.id; // Mendapatkan ID pengguna dari token akses
+  const newFoto = req.files.file; // Mendapatkan file gambar dari permintaan
+
+  if (!newFoto) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
   try {
-    // Upload file ke Cloudinary
-    const result = await cloudinary.v2.uploader.upload(file.buffer, {
-      folder: "uploads/profile", // Folder untuk menyimpan foto di Cloudinary
-      use_filename: true, // Menggunakan nama file asli
-    });
+    // Unggah file ke Cloudinary
+    const cloudinaryResponse = await uploadToCloudinary(newFoto.tempFilePath);
 
-    // Dapatkan URL gambar dari hasil upload
-    const photoUrl = result.secure_url;
+    // Perbarui database dengan nama file baru dan URL gambar dari Cloudinary
+    const { secure_url, public_id } = cloudinaryResponse;
 
-    // Update basis data dengan URL gambar baru
-    const query = "UPDATE users SET foto = ?, url_foto = ? WHERE id_user = ?";
-    const values = [file.filename, photoUrl, userId];
+    // Ambil foto lama pengguna dari database untuk penghapusan
+    const [userData] = await pool.query(
+      "SELECT foto FROM users WHERE id_user = ?",
+      [userId]
+    );
 
-    // Jalankan query ke basis data
-    await pool.query(query, values);
+    if (userData.length > 0) {
+      const oldFoto = userData[0].foto;
 
-    // Kirim URL gambar dalam tanggapan
-    res
-      .status(200)
-      .json({ message: "User photo updated successfully", photoUrl });
+      // Jika pengguna memiliki foto profil sebelumnya, hapus dari Cloudinary
+      if (oldFoto) {
+        await cloudinary.v2.uploader.destroy(oldFoto);
+      }
+
+      // Update database dengan foto baru dan URL gambar
+      await pool.query(
+        "UPDATE users SET foto = ?, url_foto = ? WHERE id_user = ?",
+        [public_id, secure_url, userId]
+      );
+
+      // Kirim URL gambar dalam tanggapan
+      res.status(200).json({
+        message: "User photo updated successfully",
+        photoUrl: secure_url,
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to update user photo" });
+    console.error("Error updating user photo:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Fungsi untuk menghapus foto profil pengguna
+export const deletePhoto = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // Ambil data foto pengguna dari database
+    const [userData] = await pool.query(
+      "SELECT foto FROM users WHERE id_user = ?",
+      [userId]
+    );
+
+    if (userData.length > 0) {
+      const oldFoto = userData[0].foto;
+
+      // Jika pengguna memiliki foto profil sebelumnya, hapus dari Cloudinary
+      if (oldFoto) {
+        await cloudinary.v2.uploader.destroy(oldFoto);
+      }
+
+      // Update database untuk menghapus referensi foto
+      await pool.query(
+        "UPDATE users SET foto = NULL, url_foto = NULL WHERE id_user = ?",
+        [userId]
+      );
+
+      res.status(200).json({ message: "User photo deleted successfully" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting user photo:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -232,36 +302,6 @@ export const changePassword = async (req, res) => {
     ]);
 
     res.status(200).json({ message: "Password updated successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Fungsi untuk menghapus foto profil pengguna
-export const deletePhoto = async (req, res) => {
-  const userId = req.user.id;
-
-  try {
-    const [userData] = await pool.query(
-      "SELECT foto FROM users WHERE id_user = ?",
-      [userId]
-    );
-    const oldFoto = userData[0].foto;
-
-    if (oldFoto) {
-      const oldFotoPath = `../uploads/profile/${oldFoto}`;
-      if (fs.existsSync(oldFotoPath)) {
-        fs.unlinkSync(oldFotoPath);
-      }
-    }
-
-    await pool.query(
-      "UPDATE users SET foto = NULL, url_foto = NULL WHERE id_user = ?",
-      [userId]
-    );
-
-    res.status(200).json({ message: "User photo deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
