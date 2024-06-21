@@ -42,7 +42,7 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       if (response && response.data && response.data.message) {
         onUpdate(null); // Update parent component with null photo URL
         onClose(); // Close the modal
-        window.location.reload();
+        window.location.reload(); // Reloading window might not be necessary; consider alternative approach
       } else {
         console.error("Invalid response format:", response);
         alert("Failed to delete user photo. Invalid response format.");
@@ -88,7 +88,6 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       if (response && response.data && response.data.photoUrl) {
         onUpdate(response.data.photoUrl); // Update parent component with new photo URL
         onClose(); // Close the modal
-        window.location.reload();
       } else {
         console.error("Invalid response format:", response);
         alert("Failed to update user photo. Invalid response format.");
@@ -114,10 +113,14 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
         <h2 className="text-xl font-bold mb-4">Upload Foto Profil</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">Foto Profil</label>
+            <label htmlFor="foto" className="block text-gray-700">
+              Foto Profil
+            </label>
             <input
               type="file"
+              id="foto"
               name="foto"
+              accept=".jpg, .jpeg, .png"
               onChange={handleFileChange}
               className="w-full p-2 border border-gray-300 rounded"
             />
