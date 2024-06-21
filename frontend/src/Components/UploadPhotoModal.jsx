@@ -51,16 +51,12 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
     try {
       const accessToken = localStorage.getItem("accessToken");
 
-      const response = await axios.put(
-        "https://petpals-be.vercel.app/api/users/update-photo",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const response = await axios.put("/users/update-photo", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
       if (response.status === 200) {
         onUpdate(response.data.photoUrl); // Update URL foto baru di komponen utama
@@ -77,6 +73,35 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
       } else {
         console.error("Kesalahan umum:", error.message);
         alert("Gagal mengunggah foto. Kesalahan umum.");
+      }
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+
+      const response = await axios.delete("/users/delete-photo", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        onUpdate(null); // Hapus URL foto dari komponen utama
+        onClose(); // Tutup modal setelah berhasil menghapus
+      } else {
+        console.error("Invalid response format:", response);
+        alert("Gagal menghapus foto. Format respons tidak valid.");
+      }
+    } catch (error) {
+      console.error("Gagal menghapus foto:", error);
+      if (error.response) {
+        console.error("Server error:", error.response.data);
+        alert("Gagal menghapus foto. Kesalahan server.");
+      } else {
+        console.error("Kesalahan umum:", error.message);
+        alert("Gagal menghapus foto. Kesalahan umum.");
       }
     }
   };
@@ -115,9 +140,18 @@ const UploadPhotoModal = ({ onClose, onUpdate }) => {
             <button
               type="button"
               onClick={onClose}
-              className="mr-4 py-2 px-4 text-gray-500 rounded"
+              className="mr-4 py-2 px-4 text-gray-500 rounded absolute top-0 right-0 mt-4 mr-4"
             >
-              Batal
+              <i className="fas fa-times"></i> {/* Icon silang */}
+            </button>
+          </div>
+          <div className="flex justify-end mb-4">
+            <button
+              type="button"
+              onClick={handleDeletePhoto}
+              className="mr-4 py-2 px-4 border border-[#DE9455] bg-white text-[#DE9455] hover:bg-[#DE9455] hover:text-white transition duration-300 rounded"
+            >
+              <i className="fas fa-trash-alt"></i> {/* Icon tempat sampah */}
             </button>
             <button
               type="submit"
