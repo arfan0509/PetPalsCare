@@ -81,10 +81,6 @@ const PetDetailPage = () => {
     setSelectedImage(url);
   };
 
-  const handlePetDetailClick = (petId) => {
-    navigate(`/detailhewan/${petId}`);
-  };
-
   const handleChatWithOwner = () => {
     const phoneNumber = Hewan.user_no_hp;
     const jenisHewanBold = `*${Hewan.jenis_hewan}*`;
@@ -134,6 +130,10 @@ Dimana saya mendapatkan informasi ini di situs *PetPals Care*`;
     { id_foto: "main", url_foto: Hewan.url_fotoutama },
     ...Hewan.foto_hewan,
   ];
+
+  const handlePetDetailClick = (petId) => {
+    navigate(`/detailhewan/${petId}`);
+  };
 
   return (
     <div className="font-poppins">
