@@ -134,6 +134,7 @@ Dimana saya mendapatkan informasi ini di situs *PetPals Care*`;
 
   const handlePetDetailClick = (petId) => {
     navigate(`/detailhewan/${petId}`);
+    window.location.reload();
   };
 
   return (
