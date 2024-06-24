@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar-after";
 import Footer from "../Components/Footer-after";
 import axios from "../context/axiosConfig";
@@ -264,7 +265,7 @@ Dimana saya mendapatkan informasi ini di situs *PetPals Care*`;
             />
           ))}
         </div>
-      </div>{" "}
+      </div>
       <Footer />
     </div>
   );
