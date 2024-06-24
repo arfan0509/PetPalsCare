@@ -81,6 +81,10 @@ const PetDetailPage = () => {
     setSelectedImage(url);
   };
 
+  const handlePetDetailClick = (petId) => {
+    navigate(`/detailhewan/${petId}`);
+  };
+
   const handleChatWithOwner = () => {
     const phoneNumber = Hewan.user_no_hp;
     const jenisHewanBold = `*${Hewan.jenis_hewan}*`;
